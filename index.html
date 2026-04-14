@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LinkedIn WYSIWYG Composer</title>
+  <meta
+    name="description"
+    content="Compose LinkedIn-ready posts with Unicode bold, italic, decorative text styles, and list markers that survive paste."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-glow page-glow-left"></div>
+  <div class="page-glow page-glow-right"></div>
+
+  <header class="hero reveal">
+    <div class="hero-copy">
+      <h1>Format LinkedIn Posts.</h1>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="panel editor-panel reveal delay-1">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Editor</p>
+          <h2>Compose in the transformed text directly</h2>
+        </div>
+      </div>
+
+      <div id="style-toolbar" class="tool-section"></div>
+      <div id="list-toolbar" class="tool-section compact"></div>
+
+      <div class="utility-bar">
+          <button id="normalize-text" class="secondary-action" type="button">Remove formatting</button>
+        <button id="copy-output" class="primary-action" type="button">Copy output</button>
+      </div>
+
+      <label class="sr-only" for="editor">LinkedIn post editor</label>
+      <textarea
+        id="editor"
+        spellcheck="false"
+        placeholder="Write your post here, select text, and use the toolbar to transform it..."
+      ></textarea>
+
+      <div class="stats-bar">
+        <span><strong id="char-count">0</strong> chars</span>
+        <span><strong id="word-count">0</strong> words</span>
+        <span><strong id="line-count">1</strong> lines</span>
+      </div>
+    </section>
+
+    <section class="panel preview-panel reveal delay-2">
+      <div class="panel-heading align-start">
+        <div>
+          <p class="panel-kicker">Preview</p>
+          <h2>LinkedIn-style paste preview</h2>
+        </div>
+      </div>
+
+      <article class="linkedin-card">
+        <div class="author-row">
+          <div class="avatar">LW</div>
+          <div>
+            <p class="author-name">LinkedIn WYSIWYG</p>
+            <p class="author-meta">Draft preview</p>
+          </div>
+        </div>
+
+        <pre id="preview" class="preview-copy">Your post preview will appear here.</pre>
+      </article>
+
+    </section>
+  </main>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
