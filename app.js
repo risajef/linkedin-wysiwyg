@@ -3,7 +3,7 @@ const ASCII_LOWER = ASCII_UPPER.toLowerCase();
 const DIGITS = "0123456789";
 const COMBINING_MARKS = /[\u0300-\u036f]/g;
 const ZWSP = "\u200B";
-const INDENT_CHAR = "\u2007";
+const INDENT_CHAR = "  ";
 const elements = {
     editor: document.querySelector("#editor"),
     output: document.querySelector("#output"),
