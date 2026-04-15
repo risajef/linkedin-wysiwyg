@@ -95,21 +95,6 @@ function createTransformFromMap(map, { preferUppercase = false, preferLowercase 
     };
 }
 
-function regionalIndicatorTransform(text) {
-    let result = "";
-
-    for (const char of text) {
-        if (/^[A-Za-z]$/.test(char)) {
-            const codePoint = 0x1f1e6 + char.toUpperCase().charCodeAt(0) - 65;
-            result += String.fromCodePoint(codePoint) + ZWSP;
-        } else {
-            result += char;
-        }
-    }
-
-    return result;
-}
-
 function toRoman(value) {
     const numerals = [
         [1000, "M"],
@@ -182,7 +167,6 @@ const boldFrakturMap = buildRangeMap({ upperStart: 0x1d56c, lowerStart: 0x1d586 
 const monospaceMap = buildRangeMap({ upperStart: 0x1d670, lowerStart: 0x1d68a, digitStart: 0x1d7f6 });
 const fullwidthMap = buildRangeMap({ upperStart: 0xff21, lowerStart: 0xff41, digitStart: 0xff10 });
 const outlinedBlockMap = buildRangeMap({ upperStart: 0x1f130 });
-const solidBlockMap = buildRangeMap({ upperStart: 0x1f170 });
 
 const doubleStruckMap = buildExplicitMap({
     upper: "𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ",
@@ -212,7 +196,7 @@ const smallCapsMap = new Map([
     ["a", "ᴀ"], ["b", "ʙ"], ["c", "ᴄ"], ["d", "ᴅ"], ["e", "ᴇ"], ["f", "ꜰ"],
     ["g", "ɢ"], ["h", "ʜ"], ["i", "ɪ"], ["j", "ᴊ"], ["k", "ᴋ"], ["l", "ʟ"],
     ["m", "ᴍ"], ["n", "ɴ"], ["o", "ᴏ"], ["p", "ᴘ"], ["q", "ǫ"], ["r", "ʀ"],
-    ["s", "ꜱ"], ["t", "ᴛ"], ["u", "ᴜ"], ["v", "ᴠ"], ["w", "ᴡ"], ["x", "ˣ"],
+    ["s", "ꜱ"], ["t", "ᴛ"], ["u", "ᴜ"], ["v", "ᴠ"], ["w", "ᴡ"], ["x", "x"],
     ["y", "ʏ"], ["z", "ᴢ"]
 ]);
 
@@ -221,8 +205,13 @@ const superscriptMap = new Map([
     ["6", "⁶"], ["7", "⁷"], ["8", "⁸"], ["9", "⁹"], ["a", "ᵃ"], ["b", "ᵇ"],
     ["c", "ᶜ"], ["d", "ᵈ"], ["e", "ᵉ"], ["f", "ᶠ"], ["g", "ᵍ"], ["h", "ʰ"],
     ["i", "ⁱ"], ["j", "ʲ"], ["k", "ᵏ"], ["l", "ˡ"], ["m", "ᵐ"], ["n", "ⁿ"],
-    ["o", "ᵒ"], ["p", "ᵖ"], ["q", "ᑫ"], ["r", "ʳ"], ["s", "ˢ"], ["t", "ᵗ"],
-    ["u", "ᵘ"], ["v", "ᵛ"], ["w", "ʷ"], ["x", "ˣ"], ["y", "ʸ"], ["z", "ᶻ"]
+    ["o", "ᵒ"], ["p", "ᵖ"], ["q", "𐞥"], ["r", "ʳ"], ["s", "ˢ"], ["t", "ᵗ"],
+    ["u", "ᵘ"], ["v", "ᵛ"], ["w", "ʷ"], ["x", "ˣ"], ["y", "ʸ"], ["z", "ᶻ"],
+    ["A", "ᴬ"], ["B", "ᴮ"], ["C", "ꟲ"], ["D", "ᴰ"], ["E", "ᴱ"], ["F", "ꟳ"],
+    ["G", "ᴳ"], ["H", "ᴴ"], ["I", "ᴵ"], ["J", "ᴶ"], ["K", "ᴷ"], ["L", "ᴸ"],
+    ["M", "ᴹ"], ["N", "ᴺ"], ["O", "ᴼ"], ["P", "ᴾ"], ["Q", "ꟴ"], ["R", "ᴿ"],
+    ["S", "ˢ"], ["T", "ᵀ"], ["U", "ᵁ"], ["V", "ⱽ"], ["W", "ᵂ"], ["X", "ˣ"],
+    ["Y", "𐞲"], ["Z", "ᶻ"]
 ]);
 
 const subscriptMap = new Map([
@@ -351,27 +340,11 @@ const fontFamilies = [
         allowsEffects: false
     },
     {
-        id: "solidBlocks",
-        label: "Blocks",
-        description: "Filled square uppercase letters.",
-        sample: "🅃🄷🄸🅂 🄸🅂 🄰 🅃🄴🅂🅃",
-        regularTransform: createTransformFromMap(solidBlockMap, { preferUppercase: true }),
-        allowsEffects: false
-    },
-    {
-        id: "regionalIndicator",
-        label: "Regional Indicator",
-        description: "Flag-style letters separated with zero-width spaces.",
-        sample: "🇹​🇭​🇮​🇸​ 🇮​🇸​ 🇦​ 🇹​🇪​🇸​🇹​",
-        regularTransform: regionalIndicatorTransform,
-        allowsEffects: false
-    },
-    {
         id: "superscript",
         label: "Superscript",
         description: "Raised baseline for lighter callouts.",
         sample: "ᵀʰⁱˢ ⁱˢ ᵃ ᵗᵉˢᵗ",
-        regularTransform: createTransformFromMap(superscriptMap, { preferLowercase: true }),
+        regularTransform: createTransformFromMap(superscriptMap),
         allowsEffects: false
     },
     {
@@ -477,7 +450,6 @@ const reverseLookup = new Map();
     monospaceMap,
     fullwidthMap,
     outlinedBlockMap,
-    solidBlockMap,
     doubleStruckMap,
     frakturMap,
     scriptMap,
