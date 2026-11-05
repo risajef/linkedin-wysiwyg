@@ -219,3 +219,17 @@ test('canceling composition over a selection leaves its text and history unchang
     assert.equal(await value(page), '', 'canceled composition adds no undo transaction');
     await client.detach();
 });
+
+test('format controls have readable accessible names and support keyboard activation', async t => {
+    const page = await open(t);
+    for (const name of ['Bold', 'Strikethrough', 'Underline', 'Double underline']) {
+        assert.ok(await page.$(`aria/${name}[role="button"]`), `${name} has an accessible name`);
+    }
+    assert.equal(await page.$eval('#font-select option[value="boldSans"]', e => e.textContent), 'Bold (sans)');
+    await page.type('#editor', 'abc');
+    await select(page, 0, 3);
+    await page.focus('aria/Bold[role="button"]');
+    await page.keyboard.press('Space');
+    assert.equal(await value(page), '𝐚𝐛𝐜');
+    assert.equal(await page.$eval('#bold-toggle', e => e.getAttribute('aria-pressed')), 'true');
+});

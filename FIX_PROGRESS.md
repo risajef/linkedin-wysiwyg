@@ -12,7 +12,7 @@ Review baseline: `8553ad5`, 2026-11-05. Finding numbers refer to the parent's `L
 | 6. Clipboard outcomes | Complete | Browser adapter checks legacy copy results, handles exceptions, cleans its temporary buffer and restores focus/selection. Failure offers manual selection; repeated pending clicks are disabled. Chromium covers real API success, rejected API with false/throwing fallback, fallback success and manual selection. |
 | 7. Selection / typing state | Complete | Selection formatting is inferred independently from typing mode; mixed effects expose aria-pressed=mixed. Plain selections can be bolded after a previous bold selection. Remove formatting resets future typing. Pure and Chromium state-transition regressions pass. One-way alphabets remain intentionally uninferred. |
 | 8. Composition / input methods | Complete | Native insertions finish before styling, including paste/replacement and non-cancelable input. Composition text is preserved until commit, then formatted as one undo transaction. Chromium CDP IME composition, canceled composition, paste and replacement regressions pass. Physical mobile keyboards, dictation and other browser engines remain manual validation items. |
-| 9. Accessible controls | Pending | |
+| 9. Accessible controls | Complete | Formatting toggles have plain-language accessible names/tooltips and font options use readable names. Chromium resolves controls by accessible name and verifies keyboard activation and pressed states. Physical screen-reader validation remains manual. |
 | 10. Runtime verification | Pending | |
 | 11. Hosting / presentation | Pending | |
 

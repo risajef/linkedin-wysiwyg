@@ -274,10 +274,6 @@ function getListOptionExample(list) {
     return list.formatter(0);
 }
 
-function getFontOptionLabel(font) {
-    return font.regularTransform(normalizeAscii(font.label));
-}
-
 function getSelectedLineRange() {
     return getLineBoundaries(elements.editor.value, selectionState.start, selectionState.end);
 }
@@ -388,15 +384,15 @@ function renderStyleToolbar() {
           <select id="font-select" class="control-select">
             ${fontFamilies
             .map(
-                (font) => `<option value="${font.id}">${escapeHtml(getFontOptionLabel(font))}</option>`
+                (font) => `<option value="${font.id}">${escapeHtml(font.label)}</option>`
             )
             .join("")}
           </select>
         </label>
-        <button id="bold-toggle" class="format-toggle" type="button" aria-pressed="false">𝐀𝐚</button>
-        <button id="strike-toggle" class="format-toggle" type="button" aria-pressed="false">A̶a̶</button>
-        <button id="underline-toggle" class="format-toggle" type="button" aria-pressed="false">A̲a̲</button>
-        <button id="double-underline-toggle" class="format-toggle" type="button" aria-pressed="false">A̳a̳</button>
+        <button id="bold-toggle" aria-label="Bold" title="Bold" class="format-toggle" type="button" aria-pressed="false">𝐀𝐚</button>
+        <button id="strike-toggle" aria-label="Strikethrough" title="Strikethrough" class="format-toggle" type="button" aria-pressed="false">A̶a̶</button>
+        <button id="underline-toggle" aria-label="Underline" title="Underline" class="format-toggle" type="button" aria-pressed="false">A̲a̲</button>
+        <button id="double-underline-toggle" aria-label="Double underline" title="Double underline" class="format-toggle" type="button" aria-pressed="false">A̳a̳</button>
       </div>
     </section>
   `;
