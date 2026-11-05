@@ -1,5 +1,5 @@
 import { copyText } from "./clipboard.js";
-import { getLineBoundaries, transformList } from "./text-commands.js";
+import { getLineBoundaries, transformList, transformInsertion } from "./text-commands.js";
 import { EditHistory } from "./history.js";
 import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText, inspectFormat } from "./unicode.js";
 
@@ -37,6 +37,9 @@ let selectedListId = lists[0].id;
 let toastTimer = 0;
 const history = new EditHistory();
 let pendingEdit = null;
+let compositionEdit = null;
+let compositionActive = false;
+let compositionTimer = 0;
 let lastDocument = { text: "", start: 0, end: 0 };
 
 function snapshot() {
@@ -44,6 +47,8 @@ function snapshot() {
 }
 
 function travelHistory(direction) {
+    if (compositionActive) return;
+    finishComposition();
     const document = history[direction]();
     if (!document) return;
     elements.editor.value = document.text;
@@ -186,8 +191,8 @@ function updateControlState() {
 
     const font = getCurrentFont();
     const selectedList = listLookup.get(selectedListId) ?? lists[0];
-    const boldDisabled = !formatState.bold && !canEnableBold();
-    const effectDisabled = !font.allowsEffects;
+    const boldDisabled = compositionActive || (!formatState.bold && !canEnableBold());
+    const effectDisabled = compositionActive || !font.allowsEffects;
 
     elements.fontSelect.value = formatState.fontId;
     elements.listSelect.value = selectedList.id;
@@ -195,7 +200,10 @@ function updateControlState() {
     elements.strikeToggle.textContent = applyEffectSet("Aa", { strike: true, underline: false, doubleUnderline: false });
     elements.underlineToggle.textContent = applyEffectSet("Aa", { strike: false, underline: true, doubleUnderline: false });
     elements.doubleUnderlineToggle.textContent = applyEffectSet("Aa", { strike: false, underline: false, doubleUnderline: true });
-    elements.decreaseIndentButton.disabled = !shouldOutdentSelection();
+    elements.decreaseIndentButton.disabled = compositionActive || !shouldOutdentSelection();
+    for (const control of [elements.fontSelect, elements.listSelect, elements.applyList, elements.increaseIndentButton, elements.normalizeText, elements.clearEditor]) {
+        control.disabled = compositionActive;
+    }
 
     updateToggleButton(elements.boldToggle, formatState.bold, boldDisabled, mixedFormat.bold);
     updateToggleButton(elements.strikeToggle, formatState.strike, effectDisabled, mixedFormat.strike);
@@ -225,6 +233,8 @@ function restoreSelection() {
 }
 
 function replaceRange(start, end, replacement, selectionMode = "select", group = null) {
+    if (compositionActive) return;
+    finishComposition();
     const before = snapshot();
     elements.editor.focus({ preventScroll: true });
     elements.editor.setSelectionRange(start, end);
@@ -235,17 +245,13 @@ function replaceRange(start, end, replacement, selectionMode = "select", group =
     updateView();
 }
 
-function insertAtSelection(text, group = null) {
-    const start = elements.editor.selectionStart;
-    const end = elements.editor.selectionEnd;
-    replaceRange(start, end, text, "end", group);
-}
-
 function resolveToastMessage(message) {
     return typeof message === "function" ? message() : message;
 }
 
 function applyFormattingChange(nextPartialState, messages) {
+    if (compositionActive) return;
+    finishComposition();
     formatState = sanitizeFormatState({ ...formatState, ...nextPartialState });
     updateControlState();
 
@@ -360,8 +366,8 @@ function updateCounts(text) {
 function updateView() {
     const value = elements.editor.value;
     lastDocument = snapshot();
-    elements.undo.disabled = !history.canUndo;
-    elements.redo.disabled = !history.canRedo;
+    elements.undo.disabled = compositionActive || !history.canUndo;
+    elements.redo.disabled = compositionActive || !history.canRedo;
     const display = value || "Your post preview will appear here.";
 
     elements.preview.textContent = display;
@@ -455,6 +461,8 @@ async function copyOutput() {
 }
 
 function normalizeCurrentText() {
+    if (compositionActive) return;
+    finishComposition();
     typingFormatState = { ...defaultFormatState };
     if (hasSelection()) {
         replaceRange(selectionState.start, selectionState.end, normalizeAscii(getSelectedText()));
@@ -576,19 +584,66 @@ function bindToolbarEvents() {
     });
 }
 
-function bindEditorEvents() {
-    elements.editor.addEventListener("input", (event) => {
-        history.record(pendingEdit ?? lastDocument, snapshot(), event.inputType === "insertText" ? "typing" : null);
+function commitNativeEdit(before, inputType, state = typingFormatState) {
+    if (!isPlainMode(state) && inputType.startsWith("insert")) {
+        const after = transformInsertion(before, snapshot(), text => formatText(text, state));
+        elements.editor.value = after.text;
+        elements.editor.setSelectionRange(after.start, after.end);
+    }
+    history.record(before, snapshot(), inputType === "insertText" ? "typing" : null);
+    pendingEdit = null;
+    syncSelectionState();
+    updateView();
+}
+
+function finishComposition() {
+    if (!compositionEdit || compositionActive) return;
+    window.clearTimeout(compositionTimer);
+    const { before, state, canceled } = compositionEdit;
+    compositionEdit = null;
+    if (canceled) {
+        elements.editor.value = before.text;
+        elements.editor.setSelectionRange(before.start, before.end);
+    }
+    if (before.text === elements.editor.value) {
         pendingEdit = null;
         syncSelectionState();
         updateView();
-    });
+        return;
+    }
+    commitNativeEdit(before, "insertFromComposition", state);
+}
 
-    ["click", "keyup", "select", "focus", "mouseup"].forEach((eventName) => {
+function bindEditorEvents() {
+    elements.editor.addEventListener("compositionstart", () => {
+        finishComposition();
+        compositionActive = true;
+        compositionEdit = { before: snapshot(), state: { ...typingFormatState } };
+        pendingEdit = null;
+        updateControlState();
+        updateView();
+    });
+    elements.editor.addEventListener("compositionend", event => {
+        compositionActive = false;
+        if (compositionEdit) compositionEdit.canceled = event.data === "";
+        // Browsers differ on whether their final input comes before or after
+        // compositionend. Let that native commit finish before transforming it.
+        compositionTimer = window.setTimeout(finishComposition, 0);
+    });
+    elements.editor.addEventListener("input", event => {
+        if (compositionEdit || event.isComposing) {
+            syncSelectionState();
+            updateView();
+            return;
+        }
+        commitNativeEdit(pendingEdit ?? lastDocument, event.inputType ?? "");
+    });
+    ["click", "keyup", "select", "focus", "mouseup"].forEach(eventName => {
         elements.editor.addEventListener(eventName, syncSelectionState);
     });
-
-    elements.editor.addEventListener("keydown", (event) => {
+    elements.editor.addEventListener("keydown", event => {
+        if (event.isComposing || compositionActive) return;
+        finishComposition();
         if ((event.ctrlKey || event.metaKey) && !event.altKey) {
             const key = event.key.toLowerCase();
             if (key === "z" || key === "y") {
@@ -597,8 +652,8 @@ function bindEditorEvents() {
             }
         }
     });
-
-    elements.editor.addEventListener("beforeinput", (event) => {
+    elements.editor.addEventListener("beforeinput", event => {
+        if (compositionEdit || event.isComposing) return;
         if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
             if (event.cancelable) {
                 event.preventDefault();
@@ -607,22 +662,8 @@ function bindEditorEvents() {
             return;
         }
         pendingEdit = snapshot();
-        if (isPlainMode() || event.inputType !== "insertText" || !event.data) {
-            return;
-        }
-
-        event.preventDefault();
-        insertAtSelection(formatText(event.data, formatState), "typing");
-    });
-
-    elements.editor.addEventListener("paste", (event) => {
-        if (isPlainMode()) {
-            return;
-        }
-
-        event.preventDefault();
-        const pastedText = event.clipboardData.getData("text/plain");
-        insertAtSelection(formatText(pastedText, formatState));
+        // Let typing, paste, replacement and drop happen natively. Transform
+        // their committed insertion in input, including non-cancelable events.
     });
 }
 
@@ -642,6 +683,7 @@ function bindEvents() {
     });
 
     elements.clearEditor.addEventListener("click", () => {
+        if (compositionActive) return;
         replaceRange(0, elements.editor.value.length, "", "end");
         typingFormatState = { ...defaultFormatState };
         formatState = { ...defaultFormatState };

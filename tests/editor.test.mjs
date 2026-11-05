@@ -21,7 +21,7 @@ before(async () => {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${server.address().port}`;
     browser = await puppeteer.launch({ headless: true, args: process.env.CHROME_NO_SANDBOX === '1' ? ['--no-sandbox'] : [] });
-    await browser.defaultBrowserContext().overridePermissions(origin, ['clipboard-read', 'clipboard-write']);
+    await browser.defaultBrowserContext().overridePermissions(origin, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
 });
 after(async () => {
     await browser?.close();
@@ -158,4 +158,64 @@ test('selection formatting is independent of the previous selection and typing m
     await page.focus('#editor');
     await page.keyboard.type(' plain');
     assert.equal(await value(page), 'one two plain');
+});
+
+test('IME composition is untouched until commit and undoes as one operation', async t => {
+    const page = await open(t);
+    await page.click('#bold-toggle');
+    await page.focus('#editor');
+    const client = await page.createCDPSession();
+    await client.send('Input.imeSetComposition', { text: 'cafe', selectionStart: 4, selectionEnd: 4 });
+    assert.equal(await value(page), 'cafe', 'active composition stays native');
+    await client.send('Input.insertText', { text: 'café' });
+    await page.waitForFunction(() => document.querySelector('#editor').value === '𝐜𝐚𝐟é');
+    await shortcut(page, 'KeyZ');
+    assert.equal(await value(page), '');
+    await shortcut(page, 'KeyZ', true);
+    assert.equal(await value(page), '𝐜𝐚𝐟é');
+    await select(page, 7, 7);
+    await client.send('Input.imeSetComposition', { text: 'draft', selectionStart: 5, selectionEnd: 5 });
+    await client.send('Input.imeSetComposition', { text: '', selectionStart: 0, selectionEnd: 0 });
+    assert.equal(await value(page), '𝐜𝐚𝐟é');
+    await client.detach();
+});
+
+test('styled paste and non-cancelable replacements preserve surrounding text', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'keep old tail');
+    await select(page, 5, 8);
+    // Selection commands don't alter the future typing mode.
+    await select(page, 13, 13);
+    await page.click('#bold-toggle');
+    await select(page, 5, 8);
+    await page.evaluate(() => navigator.clipboard.writeText('café 🇨🇭'));
+    await shortcut(page, 'KeyV');
+    assert.equal(await value(page), 'keep 𝐜𝐚𝐟é 🇨🇭 tail');
+    await shortcut(page, 'KeyZ');
+    assert.equal(await value(page), 'keep old tail');
+    await select(page, 5, 8);
+    await page.$eval('#editor', editor => {
+        editor.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertReplacementText', data: 'new', bubbles: true, cancelable: false }));
+        editor.setRangeText('new', 5, 8, 'end');
+        editor.dispatchEvent(new InputEvent('input', { inputType: 'insertReplacementText', data: 'new', bubbles: true }));
+    });
+    assert.equal(await value(page), 'keep 𝐧𝐞𝐰 tail');
+    await shortcut(page, 'KeyZ');
+    assert.equal(await value(page), 'keep old tail');
+});
+
+test('canceling composition over a selection leaves its text and history unchanged', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'keep old tail');
+    await select(page, 13, 13);
+    await page.click('#bold-toggle');
+    await select(page, 5, 8);
+    const client = await page.createCDPSession();
+    await client.send('Input.imeSetComposition', { text: 'draft', selectionStart: 5, selectionEnd: 5 });
+    await client.send('Input.imeSetComposition', { text: '', selectionStart: 0, selectionEnd: 0 });
+    await page.waitForFunction(() => !document.querySelector('#clear-editor').disabled);
+    assert.equal(await value(page), 'keep old tail');
+    await shortcut(page, 'KeyZ');
+    assert.equal(await value(page), '', 'canceled composition adds no undo transaction');
+    await client.detach();
 });

@@ -27,3 +27,29 @@ export function transformList(block, formatter) {
         return indent + (formatter ? `${formatter(index++)} ` : '') + body;
     }).join('\n');
 }
+
+// Format the committed insertion only, retaining the surrounding document.
+export function transformInsertion(before, after, transform) {
+    let start = before.start;
+    let suffix = before.text.slice(before.end);
+    if (!after.text.startsWith(before.text.slice(0, start)) || !after.text.endsWith(suffix)
+        || after.text.length < start + suffix.length) {
+        // Some replacements (autocorrect/drop) affect more than the old selection.
+        const oldChars = Array.from(before.text);
+        const newChars = Array.from(after.text);
+        let prefixCount = 0, suffixCount = 0;
+        while (prefixCount < Math.min(oldChars.length, newChars.length)
+            && oldChars[prefixCount] === newChars[prefixCount]) prefixCount++;
+        while (suffixCount < Math.min(oldChars.length, newChars.length) - prefixCount
+            && oldChars.at(-1 - suffixCount) === newChars.at(-1 - suffixCount)) suffixCount++;
+        start = newChars.slice(0, prefixCount).join('').length;
+        suffix = suffixCount ? newChars.slice(-suffixCount).join('') : '';
+    }
+    const end = after.text.length - suffix.length;
+    const inserted = after.text.slice(start, end);
+    const formatted = transform(inserted);
+    const offset = position => position <= start ? position
+        : position >= end ? position + formatted.length - inserted.length
+        : start + transform(inserted.slice(0, position - start)).length;
+    return { text: after.text.slice(0, start) + formatted + suffix, start: offset(after.start), end: offset(after.end) };
+}
