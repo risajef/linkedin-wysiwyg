@@ -64,3 +64,26 @@ test('startup supports typing, statistics, copying and clearing', async t => {
     await page.click('#clear-editor');
     assert.equal(await value(page), '');
 });
+
+test('formatting, typing and clear have undo/redo transactions', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'abc');
+    await select(page, 0, 3);
+    await page.click('#bold-toggle');
+    assert.equal(await value(page), '𝐚𝐛𝐜');
+    await shortcut(page, 'KeyZ');
+    assert.equal(await value(page), 'abc');
+    assert.deepEqual(await page.$eval('#editor', e => [e.selectionStart, e.selectionEnd]), [0, 3]);
+    await shortcut(page, 'KeyZ', true);
+    assert.equal(await value(page), '𝐚𝐛𝐜');
+    await page.click('#clear-editor');
+    await page.click('#undo');
+    assert.equal(await value(page), '𝐚𝐛𝐜');
+    await page.click('#redo');
+    assert.equal(await value(page), '');
+    await page.type('#editor', 'xyz');
+    await shortcut(page, 'KeyZ');
+    assert.equal(await value(page), '');
+    await page.type('#editor', 'new');
+    assert.equal(await page.$eval('#redo', e => e.disabled), true);
+});

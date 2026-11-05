@@ -1,3 +1,4 @@
+import { EditHistory } from "./history.js";
 import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText } from "./unicode.js";
 
 const INDENT_CHAR = "  ";
@@ -11,6 +12,8 @@ const elements = {
     lineCount: document.querySelector("#line-count"),
     normalizeText: document.querySelector("#normalize-text"),
     clearEditor: document.querySelector("#clear-editor"),
+    undo: document.querySelector("#undo"),
+    redo: document.querySelector("#redo"),
     copyButtons: document.querySelectorAll("#copy-output"),
     toast: document.querySelector("#toast")
 };
@@ -34,6 +37,25 @@ let formatState = { ...defaultFormatState };
 let selectionState = { start: 0, end: 0 };
 let selectedListId = lists[0].id;
 let toastTimer = 0;
+const history = new EditHistory();
+let pendingEdit = null;
+let lastDocument = { text: "", start: 0, end: 0 };
+
+function snapshot() {
+    return { text: elements.editor.value, start: elements.editor.selectionStart, end: elements.editor.selectionEnd };
+}
+
+function travelHistory(direction) {
+    const document = history[direction]();
+    if (!document) return;
+    elements.editor.value = document.text;
+    elements.editor.focus({ preventScroll: true });
+    elements.editor.setSelectionRange(document.start, document.end);
+    pendingEdit = null;
+    syncSelectionState();
+    updateView();
+}
+
 
 function escapeHtml(text) {
     return text
@@ -196,18 +218,21 @@ function restoreSelection() {
     elements.editor.setSelectionRange(selectionState.start, selectionState.end);
 }
 
-function replaceRange(start, end, replacement, selectionMode = "select") {
+function replaceRange(start, end, replacement, selectionMode = "select", group = null) {
+    const before = snapshot();
     elements.editor.focus({ preventScroll: true });
     elements.editor.setSelectionRange(start, end);
     elements.editor.setRangeText(replacement, start, end, selectionMode);
+    history.record(before, snapshot(), group);
+    pendingEdit = null;
     syncSelectionState();
     updateView();
 }
 
-function insertAtSelection(text) {
+function insertAtSelection(text, group = null) {
     const start = elements.editor.selectionStart;
     const end = elements.editor.selectionEnd;
-    replaceRange(start, end, text, "end");
+    replaceRange(start, end, text, "end", group);
 }
 
 function resolveToastMessage(message) {
@@ -359,6 +384,9 @@ function updateCounts(text) {
 
 function updateView() {
     const value = elements.editor.value;
+    lastDocument = snapshot();
+    elements.undo.disabled = !history.canUndo;
+    elements.redo.disabled = !history.canRedo;
     const display = value || "Your post preview will appear here.";
 
     elements.preview.textContent = display;
@@ -462,9 +490,7 @@ function normalizeCurrentText() {
         return;
     }
 
-    elements.editor.value = normalizeAscii(elements.editor.value);
-    syncSelectionState();
-    updateView();
+    replaceRange(0, elements.editor.value.length, normalizeAscii(elements.editor.value), "end");
     showToast("Formatting removed from all text.");
 }
 
@@ -579,7 +605,9 @@ function bindToolbarEvents() {
 }
 
 function bindEditorEvents() {
-    elements.editor.addEventListener("input", () => {
+    elements.editor.addEventListener("input", (event) => {
+        history.record(pendingEdit ?? lastDocument, snapshot(), event.inputType === "insertText" ? "typing" : null);
+        pendingEdit = null;
         syncSelectionState();
         updateView();
     });
@@ -588,13 +616,31 @@ function bindEditorEvents() {
         elements.editor.addEventListener(eventName, syncSelectionState);
     });
 
+    elements.editor.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+            const key = event.key.toLowerCase();
+            if (key === "z" || key === "y") {
+                event.preventDefault();
+                travelHistory(key === "y" || event.shiftKey ? "redo" : "undo");
+            }
+        }
+    });
+
     elements.editor.addEventListener("beforeinput", (event) => {
+        if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
+            if (event.cancelable) {
+                event.preventDefault();
+                travelHistory(event.inputType === "historyUndo" ? "undo" : "redo");
+            }
+            return;
+        }
+        pendingEdit = snapshot();
         if (isPlainMode() || event.inputType !== "insertText" || !event.data) {
             return;
         }
 
         event.preventDefault();
-        insertAtSelection(formatText(event.data, formatState));
+        insertAtSelection(formatText(event.data, formatState), "typing");
     });
 
     elements.editor.addEventListener("paste", (event) => {
@@ -611,13 +657,15 @@ function bindEditorEvents() {
 function bindEvents() {
     bindToolbarEvents();
     bindEditorEvents();
+    elements.undo.addEventListener("click", () => travelHistory("undo"));
+    elements.redo.addEventListener("click", () => travelHistory("redo"));
 
     elements.normalizeText.addEventListener("click", () => {
         normalizeCurrentText();
     });
 
     elements.clearEditor.addEventListener("click", () => {
-        elements.editor.value = "";
+        replaceRange(0, elements.editor.value.length, "", "end");
         formatState = { ...defaultFormatState };
         syncSelectionState();
         updateView();
