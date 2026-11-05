@@ -1,3 +1,4 @@
+import { getLineBoundaries } from "./text-commands.js";
 import { EditHistory } from "./history.js";
 import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText } from "./unicode.js";
 
@@ -266,7 +267,7 @@ function getFontOptionLabel(font) {
 }
 
 function getSelectedLineRange() {
-    return getLineBoundaries(selectionState.start, hasSelection() ? selectionState.end : selectionState.start);
+    return getLineBoundaries(elements.editor.value, selectionState.start, selectionState.end);
 }
 
 function shouldOutdentLines(lines) {
@@ -276,20 +277,6 @@ function shouldOutdentLines(lines) {
 function shouldOutdentSelection() {
     const { start, end } = getSelectedLineRange();
     return shouldOutdentLines(elements.editor.value.slice(start, end).split("\n"));
-}
-
-function getLineBoundaries(start, end) {
-    const value = elements.editor.value;
-
-    if (!value) {
-        return { start: 0, end: 0 };
-    }
-
-    const lineStart = Math.max(value.lastIndexOf("\n", Math.max(0, start - 1)) + 1, 0);
-    const lineEndIndex = value.indexOf("\n", end);
-    const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
-
-    return { start: lineStart, end: lineEnd };
 }
 
 function applyList(listId) {

@@ -87,3 +87,15 @@ test('formatting, typing and clear have undo/redo transactions', async t => {
     await page.type('#editor', 'new');
     assert.equal(await page.$eval('#redo', e => e.disabled), true);
 });
+
+test('list and indent commands respect exclusive line selections', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'a\nb\nc');
+    await select(page, 0, 2);
+    await page.click('#apply-list');
+    assert.equal(await value(page), '• a\nb\nc');
+    await shortcut(page, 'KeyZ');
+    await select(page, 0, 2);
+    await page.click('#increase-indent');
+    assert.equal(await value(page), '  a\nb\nc');
+});
