@@ -99,3 +99,18 @@ test('list and indent commands respect exclusive line selections', async t => {
     await page.click('#increase-indent');
     assert.equal(await value(page), '  a\nb\nc');
 });
+
+test('list cleanup preserves prose and keeps indent before the new marker', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'Hello. world\n  1. nested');
+    await select(page, 0, 24);
+    await page.select('#list-select', 'clearList');
+    await page.click('#apply-list');
+    assert.equal(await value(page), 'Hello. world\n  nested');
+    await select(page, 13, 20);
+    await page.select('#list-select', 'bullets');
+    await page.click('#apply-list');
+    assert.equal(await value(page), 'Hello. world\n  • nested');
+    await page.click('#decrease-indent');
+    assert.equal(await value(page), 'Hello. world\n• nested');
+});

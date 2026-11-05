@@ -1,4 +1,4 @@
-import { getLineBoundaries } from "./text-commands.js";
+import { getLineBoundaries, transformList } from "./text-commands.js";
 import { EditHistory } from "./history.js";
 import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText } from "./unicode.js";
 
@@ -18,13 +18,6 @@ const elements = {
     copyButtons: document.querySelectorAll("#copy-output"),
     toast: document.querySelector("#toast")
 };
-
-function stripListPrefix(line) {
-    return line.replace(
-        /^(\s*)(?:(?:[-*•◦▪▸✓◆■→]|\d+[.)]|[A-Za-z]+[.)]|[ivxlcdmIVXLCDM]+[.)]|[①-⑳⓪])\s+)+/,
-        "$1"
-    );
-}
 
 const defaultFormatState = {
     fontId: "default",
@@ -285,7 +278,7 @@ function applyList(listId) {
         return;
     }
 
-    if (!elements.editor.value.trim()) {
+    if (!elements.editor.value && list.formatter) {
         const seedLines = ["First point", "Second point", "Third point"];
         const seeded = seedLines
             .map((line, index) => {
@@ -304,25 +297,7 @@ function applyList(listId) {
 
     const { start, end } = getSelectedLineRange();
     const block = elements.editor.value.slice(start, end);
-    const lines = block.split("\n");
-    let visibleIndex = 0;
-
-    const transformed = lines
-        .map((line) => {
-            if (!line.trim()) {
-                return line;
-            }
-
-            const cleanLine = stripListPrefix(line);
-            if (!list.formatter) {
-                return cleanLine;
-            }
-
-            const marker = list.formatter(visibleIndex);
-            visibleIndex += 1;
-            return `${marker} ${cleanLine}`;
-        })
-        .join("\n");
+    const transformed = transformList(block, list.formatter);
 
     replaceRange(start, end, transformed);
     showToast(`${list.label} applied.`);
