@@ -14,6 +14,10 @@ Review baseline: `8553ad5`, 2026-11-05. Finding numbers refer to the parent's `L
 | 8. Composition / input methods | Complete | Native insertions finish before styling, including paste/replacement and non-cancelable input. Composition text is preserved until commit, then formatted as one undo transaction. Chromium CDP IME composition, canceled composition, paste and replacement regressions pass. Physical mobile keyboards, dictation and other browser engines remain manual validation items. |
 | 9. Accessible controls | Complete | Formatting toggles have plain-language accessible names/tooltips and font options use readable names. Chromium resolves controls by accessible name and verifies keyboard activation and pressed states. Physical screen-reader validation remains manual. |
 | 10. Runtime verification | Complete | Added standalone Node 22.12+ npm scripts, pinned dev-only Puppeteer with a lockfile, and subrepo-only CI. Regression suite fails on browser page errors and covers all preceding fixes; pure history tests cover grouping/branches/bounds. Character count explicitly counts grapheme clusters rather than implying a LinkedIn-specific limit. |
-| 11. Hosting / presentation | Pending | |
+| 11. Hosting / presentation | Complete | Removed external theme dependency, dead glow/output/grid rules and global !important overrides. Local styles retain the burgundy layout, add scoped focus/mixed states and honor reduced motion. README documents static hosting, editor contracts, test setup and limitations. Chromium checks standalone resources, narrow layout and reduced motion. |
 
 Run `npm ci`, `npm run test:install-browser`, then `npm test` with Node 22.12+. `npm run test:unit` needs no browser. Puppeteer is a development-only dependency, pinned to a supported release; runtime remains dependency-free. On hosts requiring it, `CHROME_NO_SANDBOX=1` explicitly opts into running the test browser without its sandbox; this is not the default.
+
+## Final validation
+
+All numbered fixes are implemented. The final checks use Puppeteer 25.16.0 and its pinned Chrome 156.0.8078.47. Clean dependency installation succeeds; syntax checks, pure regressions and real-browser checks pass. Standalone mobile-width rendering was also inspected visually. Browser/device limitations and deliberately preserved ambiguous text are documented in README.md.

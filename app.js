@@ -404,7 +404,7 @@ function renderListToolbar() {
       <div class="tool-group-header">
         <div>
           <h3>Lists</h3>
-                    <p>Pick a marker style, then apply it or adjust indent on the selected lines.</p>
+          <p>Pick a marker style, then apply it or adjust indent on the selected lines.</p>
         </div>
       </div>
       <div class="list-row">
@@ -419,8 +419,8 @@ function renderListToolbar() {
           </select>
         </label>
         <button id="apply-list" class="secondary-action compact-action" type="button">Apply list</button>
-                <button id="increase-indent" class="secondary-action compact-action indent-action" type="button" aria-label="Increase indent" title="Increase indent">⇥</button>
-                <button id="decrease-indent" class="secondary-action compact-action indent-action" type="button" aria-label="Decrease indent" title="Decrease indent">⇤</button>
+        <button id="increase-indent" class="secondary-action compact-action indent-action" type="button" aria-label="Increase indent" title="Increase indent">⇥</button>
+        <button id="decrease-indent" class="secondary-action compact-action indent-action" type="button" aria-label="Decrease indent" title="Decrease indent">⇤</button>
       </div>
     </section>
   `;

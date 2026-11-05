@@ -204,22 +204,6 @@ test('styled paste and non-cancelable replacements preserve surrounding text', a
     assert.equal(await value(page), 'keep old tail');
 });
 
-test('canceling composition over a selection leaves its text and history unchanged', async t => {
-    const page = await open(t);
-    await page.type('#editor', 'keep old tail');
-    await select(page, 13, 13);
-    await page.click('#bold-toggle');
-    await select(page, 5, 8);
-    const client = await page.createCDPSession();
-    await client.send('Input.imeSetComposition', { text: 'draft', selectionStart: 5, selectionEnd: 5 });
-    await client.send('Input.imeSetComposition', { text: '', selectionStart: 0, selectionEnd: 0 });
-    await page.waitForFunction(() => !document.querySelector('#clear-editor').disabled);
-    assert.equal(await value(page), 'keep old tail');
-    await shortcut(page, 'KeyZ');
-    assert.equal(await value(page), '', 'canceled composition adds no undo transaction');
-    await client.detach();
-});
-
 test('format controls have readable accessible names and support keyboard activation', async t => {
     const page = await open(t);
     for (const name of ['Bold', 'Strikethrough', 'Underline', 'Double underline']) {
@@ -238,4 +222,38 @@ test('character statistics count displayed characters instead of UTF-16 units', 
     const page = await open(t);
     await page.type('#editor', '𝐚🇨🇭❤️e\u0301');
     assert.equal(await page.$eval('#char-count', e => e.textContent), '4');
+});
+
+test('canceling composition over a selection leaves its text and history unchanged', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'keep old tail');
+    await select(page, 13, 13);
+    await page.click('#bold-toggle');
+    await select(page, 5, 8);
+    const client = await page.createCDPSession();
+    await client.send('Input.imeSetComposition', { text: 'draft', selectionStart: 5, selectionEnd: 5 });
+    await client.send('Input.imeSetComposition', { text: '', selectionStart: 0, selectionEnd: 0 });
+    await page.waitForFunction(() => !document.querySelector('#clear-editor').disabled);
+    assert.equal(await value(page), 'keep old tail');
+    await shortcut(page, 'KeyZ');
+    assert.equal(await value(page), '', 'canceled composition adds no undo transaction');
+    await client.detach();
+});
+
+test('standalone resources load and the narrow layout honors reduced motion', async t => {
+    const page = await open(t);
+    const failures = [];
+    page.on('response', response => {
+        if (response.status() >= 400 && /\.(?:js|css)$/.test(response.url())) failures.push(response.url());
+    });
+    await page.setViewport({ width: 375, height: 812 });
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+    await page.reload();
+    assert.deepEqual(failures, [], 'no missing scripts or stylesheets');
+    assert.equal(await page.$eval('.reveal', e => getComputedStyle(e).animationName), 'none');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    assert.equal(await page.$eval('h1', e => getComputedStyle(e).color), 'rgb(139, 0, 0)');
+    await page.type('#editor', 'Standalone draft');
+    assert.equal(await page.$eval('#preview', e => e.textContent), 'Standalone draft');
+    if (process.env.REVIEW_SCREENSHOT) await page.screenshot({ path: process.env.REVIEW_SCREENSHOT, fullPage: true });
 });

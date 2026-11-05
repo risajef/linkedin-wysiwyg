@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="sapphire">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,13 +8,9 @@
     name="description"
     content="Compose LinkedIn-ready posts with Unicode bold, italic, decorative text styles, and list markers that survive paste."
   >
-  <link rel="stylesheet" href="../../theme/risajef-theme.css">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="rjs-styled">
-  <div class="page-glow page-glow-left"></div>
-  <div class="page-glow page-glow-right"></div>
-
+<body>
   <header class="hero reveal">
     <div class="hero-copy">
       <h1>Format LinkedIn Posts.</h1>
@@ -43,10 +39,12 @@
         <button id="manual-copy" class="secondary-action" type="button" hidden>Select draft for manual copy</button>
       </div>
 
+      <p id="editor-help" class="toolbar-note">Select text to style it. With no selection, controls set the style for new typing. Undo restores earlier edits.</p>
       <label class="sr-only" for="editor">LinkedIn post editor</label>
       <textarea
         id="editor"
         spellcheck="false"
+        aria-describedby="editor-help"
         placeholder="Write your post here, select text, and use the toolbar to transform it..."
       ></textarea>
 
