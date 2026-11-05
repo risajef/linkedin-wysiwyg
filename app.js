@@ -6,7 +6,6 @@ const ZWSP = "\u200B";
 const INDENT_CHAR = "  ";
 const elements = {
     editor: document.querySelector("#editor"),
-    output: document.querySelector("#output"),
     preview: document.querySelector("#preview"),
     styleToolbar: document.querySelector("#style-toolbar"),
     listToolbar: document.querySelector("#list-toolbar"),
@@ -868,7 +867,6 @@ function updateView() {
     const display = value || "Your post preview will appear here.";
 
     elements.preview.textContent = display;
-    elements.output.value = value;
     updateCounts(value);
 }
 
@@ -954,8 +952,8 @@ async function copyOutput() {
         restoreSelection();
         return;
     } catch {
-        elements.output.focus({ preventScroll: true });
-        elements.output.select();
+        elements.editor.focus({ preventScroll: true });
+        elements.editor.select();
         document.execCommand("copy");
         restoreSelection();
         showToast("Copied to clipboard.");
@@ -1140,6 +1138,11 @@ function bindEvents() {
 }
 
 function init() {
+    for (const [name, element] of Object.entries(elements)) {
+        if (!element || (element instanceof NodeList && element.length === 0)) {
+            throw new Error(`Missing required UI element: ${name}`);
+        }
+    }
     renderStyleToolbar();
     renderListToolbar();
     cacheDynamicElements();
