@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { normalizeAscii, formatText } from '../unicode.js';
+import { normalizeAscii, formatText, inspectFormat } from '../unicode.js';
 
 const plain = { fontId: 'default', bold: false };
 test('formatting preserves natural letters, emoji and unrelated combining marks', () => {
@@ -14,4 +14,12 @@ test('supported decorative letters and editor effects can be removed', () => {
     assert.equal(normalizeAscii('𝐇𝐞𝐥𝐥𝐨 𝟏𝟐𝟑'), 'Hello 123');
     assert.equal(normalizeAscii('a\u0332\u0336 é e\u0301'), 'a é e\u0301');
     assert.equal(formatText('𝐀', { ...plain, bold: true }), '𝐀');
+});
+
+test('selection formatting distinguishes plain, bold and mixed effects', () => {
+    assert.equal(inspectFormat('𝐚𝐛𝐜').state.bold, true);
+    assert.equal(inspectFormat('abc').state.bold, false);
+    assert.equal(inspectFormat('𝐚b').mixed.bold, true);
+    assert.equal(inspectFormat('a\u0332b').mixed.underline, true);
+    assert.equal(inspectFormat('a\u0332b\u0332').state.underline, true);
 });

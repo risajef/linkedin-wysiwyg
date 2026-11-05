@@ -1,7 +1,7 @@
 import { copyText } from "./clipboard.js";
 import { getLineBoundaries, transformList } from "./text-commands.js";
 import { EditHistory } from "./history.js";
-import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText } from "./unicode.js";
+import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText, inspectFormat } from "./unicode.js";
 
 const INDENT_CHAR = "  ";
 const elements = {
@@ -29,7 +29,9 @@ const defaultFormatState = {
     doubleUnderline: false
 };
 
+let typingFormatState = { ...defaultFormatState };
 let formatState = { ...defaultFormatState };
+let mixedFormat = {};
 let selectionState = { start: 0, end: 0 };
 let selectedListId = lists[0].id;
 let toastTimer = 0;
@@ -167,13 +169,13 @@ function getBoldToggleExample() {
     );
 }
 
-function updateToggleButton(button, isActive, isDisabled) {
+function updateToggleButton(button, isActive, isDisabled, isMixed = false) {
     if (!button) {
         return;
     }
 
     button.classList.toggle("active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
+    button.setAttribute("aria-pressed", isMixed ? "mixed" : String(isActive));
     button.disabled = isDisabled;
 }
 
@@ -195,10 +197,10 @@ function updateControlState() {
     elements.doubleUnderlineToggle.textContent = applyEffectSet("Aa", { strike: false, underline: false, doubleUnderline: true });
     elements.decreaseIndentButton.disabled = !shouldOutdentSelection();
 
-    updateToggleButton(elements.boldToggle, formatState.bold, boldDisabled);
-    updateToggleButton(elements.strikeToggle, formatState.strike, effectDisabled);
-    updateToggleButton(elements.underlineToggle, formatState.underline, effectDisabled);
-    updateToggleButton(elements.doubleUnderlineToggle, formatState.doubleUnderline, effectDisabled);
+    updateToggleButton(elements.boldToggle, formatState.bold, boldDisabled, mixedFormat.bold);
+    updateToggleButton(elements.strikeToggle, formatState.strike, effectDisabled, mixedFormat.strike);
+    updateToggleButton(elements.underlineToggle, formatState.underline, effectDisabled, mixedFormat.underline);
+    updateToggleButton(elements.doubleUnderlineToggle, formatState.doubleUnderline, effectDisabled, mixedFormat.doubleUnderline);
 }
 
 function syncSelectionState() {
@@ -206,6 +208,14 @@ function syncSelectionState() {
         start: elements.editor.selectionStart,
         end: elements.editor.selectionEnd
     };
+    if (hasSelection()) {
+        const inspected = inspectFormat(getSelectedText());
+        formatState = inspected.state;
+        mixedFormat = inspected.mixed;
+    } else {
+        formatState = { ...typingFormatState };
+        mixedFormat = {};
+    }
     updateControlState();
 }
 
@@ -245,6 +255,7 @@ function applyFormattingChange(nextPartialState, messages) {
         return;
     }
 
+    typingFormatState = { ...formatState };
     restoreSelection();
     showToast(resolveToastMessage(messages.mode));
 }
@@ -444,6 +455,7 @@ async function copyOutput() {
 }
 
 function normalizeCurrentText() {
+    typingFormatState = { ...defaultFormatState };
     if (hasSelection()) {
         replaceRange(selectionState.start, selectionState.end, normalizeAscii(getSelectedText()));
         showToast("Formatting removed from selection.");
@@ -631,6 +643,7 @@ function bindEvents() {
 
     elements.clearEditor.addEventListener("click", () => {
         replaceRange(0, elements.editor.value.length, "", "end");
+        typingFormatState = { ...defaultFormatState };
         formatState = { ...defaultFormatState };
         syncSelectionState();
         updateView();

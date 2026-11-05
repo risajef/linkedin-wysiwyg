@@ -137,3 +137,25 @@ test('clipboard fallback reports failure and offers manual copying without chang
     await page.waitForFunction(() => document.querySelector('#toast').textContent === 'Copied to clipboard.');
     assert.equal(await page.$eval('#manual-copy', e => e.hidden), true);
 });
+
+test('selection formatting is independent of the previous selection and typing mode', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'one two');
+    await select(page, 0, 3);
+    await page.click('#bold-toggle');
+    await select(page, 7, 10);
+    assert.equal(await page.$eval('#bold-toggle', e => e.getAttribute('aria-pressed')), 'false');
+    await page.click('#bold-toggle');
+    assert.equal(await value(page), '𝐨𝐧𝐞 𝐭𝐰𝐨');
+    await select(page, 0, 6);
+    await page.click('#bold-toggle');
+    assert.equal(await value(page), 'one 𝐭𝐰𝐨');
+    await select(page, 0, 6);
+    assert.equal(await page.$eval('#bold-toggle', e => e.getAttribute('aria-pressed')), 'mixed');
+    await select(page, 10, 10);
+    await page.click('#bold-toggle');
+    await page.click('#normalize-text');
+    await page.focus('#editor');
+    await page.keyboard.type(' plain');
+    assert.equal(await value(page), 'one two plain');
+});

@@ -460,4 +460,31 @@ function formatText(text, state) {
     return font.allowsEffects ? applyEffectSet(output, state) : output;
 }
 
-export { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText };
+// Only alphabets with a supported reverse conversion can be inferred safely.
+function inspectFormat(text) {
+    const state = { fontId: 'default', bold: false, strike: false, underline: false, doubleUnderline: false };
+    const mixed = {};
+    const segments = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text), part => part.segment)
+        .filter(segment => !/^\s+$/.test(segment));
+    for (const [name, mark] of [['strike', '\u0336'], ['underline', '\u0332'], ['doubleUnderline', '\u0333']]) {
+        const count = segments.filter(segment => segment.includes(mark)).length;
+        state[name] = segments.length > 0 && count === segments.length;
+        mixed[name] = count > 0 && count < segments.length;
+    }
+    const decorated = text.replace(EFFECT_MARKS, '');
+    const base = normalizeAscii(decorated);
+    if (decorated !== base) {
+        for (const font of fontFamilies) {
+            if (font.boldTransform?.(base) === decorated) return { state: { ...state, fontId: font.id, bold: true }, mixed };
+            if (font.regularTransform(base) === decorated) return { state: { ...state, fontId: font.id }, mixed };
+        }
+        const hasBold = Array.from(decorated).some(char => {
+            const plain = normalizeAscii(char);
+            return plain !== char && [boldSerifMap, boldItalicSansMap, boldFrakturMap, boldScriptMap].some(map => map.get(plain) === char);
+        });
+        mixed.bold = hasBold;
+    }
+    return { state, mixed };
+}
+
+export { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText, inspectFormat };

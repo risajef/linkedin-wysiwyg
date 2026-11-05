@@ -10,7 +10,7 @@ Review baseline: `8553ad5`, 2026-11-05. Finding numbers refer to the parent's `L
 | 4. Line boundaries | Complete | Extracted line-boundary command with exclusive selection ends and valid empty-line ranges. Pure edge cases and Chromium list/indent checks pass, including undo. |
 | 5. List parsing | Complete | Pure list parsing separates indentation and body, removes one narrow marker, preserves prose, and keeps indentation before replacement markers. Empty Clear markers no longer inserts sample content. Pure and Chromium checks pass. Ambiguous multi-letter alphabetic prefixes are deliberately preserved (including generated labels after z). |
 | 6. Clipboard outcomes | Complete | Browser adapter checks legacy copy results, handles exceptions, cleans its temporary buffer and restores focus/selection. Failure offers manual selection; repeated pending clicks are disabled. Chromium covers real API success, rejected API with false/throwing fallback, fallback success and manual selection. |
-| 7. Selection / typing state | Pending | |
+| 7. Selection / typing state | Complete | Selection formatting is inferred independently from typing mode; mixed effects expose aria-pressed=mixed. Plain selections can be bolded after a previous bold selection. Remove formatting resets future typing. Pure and Chromium state-transition regressions pass. One-way alphabets remain intentionally uninferred. |
 | 8. Composition / input methods | Pending | |
 | 9. Accessible controls | Pending | |
 | 10. Runtime verification | Pending | |
