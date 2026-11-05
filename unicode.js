@@ -460,6 +460,10 @@ function formatText(text, state) {
     return font.allowsEffects ? applyEffectSet(output, state) : output;
 }
 
+function countCharacters(text) {
+    return Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)).length;
+}
+
 // Only alphabets with a supported reverse conversion can be inferred safely.
 function inspectFormat(text) {
     const state = { fontId: 'default', bold: false, strike: false, underline: false, doubleUnderline: false };
@@ -487,4 +491,4 @@ function inspectFormat(text) {
     return { state, mixed };
 }
 
-export { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText, inspectFormat };
+export { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText, inspectFormat, countCharacters };

@@ -233,3 +233,9 @@ test('format controls have readable accessible names and support keyboard activa
     assert.equal(await value(page), '𝐚𝐛𝐜');
     assert.equal(await page.$eval('#bold-toggle', e => e.getAttribute('aria-pressed')), 'true');
 });
+
+test('character statistics count displayed characters instead of UTF-16 units', async t => {
+    const page = await open(t);
+    await page.type('#editor', '𝐚🇨🇭❤️e\u0301');
+    assert.equal(await page.$eval('#char-count', e => e.textContent), '4');
+});

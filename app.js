@@ -1,7 +1,7 @@
 import { copyText } from "./clipboard.js";
 import { getLineBoundaries, transformList, transformInsertion } from "./text-commands.js";
 import { EditHistory } from "./history.js";
-import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText, inspectFormat } from "./unicode.js";
+import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText, inspectFormat, countCharacters } from "./unicode.js";
 
 const INDENT_CHAR = "  ";
 const elements = {
@@ -354,7 +354,7 @@ function updateCounts(text) {
     const words = trimmed ? trimmed.split(/\s+/).length : 0;
     const lines = text ? text.split("\n").length : 1;
 
-    elements.charCount.textContent = String(text.length);
+    elements.charCount.textContent = String(countCharacters(text));
     elements.wordCount.textContent = String(words);
     elements.lineCount.textContent = String(lines);
 }
