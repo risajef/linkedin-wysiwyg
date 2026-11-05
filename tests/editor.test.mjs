@@ -114,3 +114,26 @@ test('list cleanup preserves prose and keeps indent before the new marker', asyn
     await page.click('#decrease-indent');
     assert.equal(await value(page), 'Hello. world\n• nested');
 });
+
+test('clipboard fallback reports failure and offers manual copying without changing text', async t => {
+    const page = await open(t);
+    await page.type('#editor', 'Keep my draft');
+    await page.evaluate(() => {
+        Object.defineProperty(navigator.clipboard, 'writeText', { value: () => Promise.reject(new Error('denied')) });
+        document.execCommand = () => false;
+    });
+    await page.click('#copy-output');
+    await page.waitForSelector('#manual-copy', { visible: true });
+    assert.match(await page.$eval('#toast', e => e.textContent), /Copy failed/);
+    assert.equal(await value(page), 'Keep my draft');
+    assert.equal(await page.$$eval('textarea', e => e.length), 1, 'temporary buffer is removed');
+    await page.click('#manual-copy');
+    assert.deepEqual(await page.$eval('#editor', e => [e.selectionStart, e.selectionEnd]), [0, 13]);
+    await page.evaluate(() => { document.execCommand = () => { throw Error('unsupported'); }; });
+    await page.click('#copy-output');
+    assert.match(await page.$eval('#toast', e => e.textContent), /Copy failed/);
+    await page.evaluate(() => { document.execCommand = () => true; });
+    await page.click('#copy-output');
+    await page.waitForFunction(() => document.querySelector('#toast').textContent === 'Copied to clipboard.');
+    assert.equal(await page.$eval('#manual-copy', e => e.hidden), true);
+});

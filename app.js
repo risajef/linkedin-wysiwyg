@@ -1,3 +1,4 @@
+import { copyText } from "./clipboard.js";
 import { getLineBoundaries, transformList } from "./text-commands.js";
 import { EditHistory } from "./history.js";
 import { fontFamilies, fontLookup, lists, listLookup, normalizeAscii, applyEffectSet, formatText } from "./unicode.js";
@@ -15,6 +16,7 @@ const elements = {
     clearEditor: document.querySelector("#clear-editor"),
     undo: document.querySelector("#undo"),
     redo: document.querySelector("#redo"),
+    manualCopy: document.querySelector("#manual-copy"),
     copyButtons: document.querySelectorAll("#copy-output"),
     toast: document.querySelector("#toast")
 };
@@ -431,17 +433,13 @@ async function copyOutput() {
         return;
     }
 
+    elements.copyButtons.forEach(button => { button.disabled = true; });
     try {
-        await navigator.clipboard.writeText(text);
-        showToast("Copied to clipboard.");
-        restoreSelection();
-        return;
-    } catch {
-        elements.editor.focus({ preventScroll: true });
-        elements.editor.select();
-        document.execCommand("copy");
-        restoreSelection();
-        showToast("Copied to clipboard.");
+        const copied = await copyText(text);
+        elements.manualCopy.hidden = copied;
+        showToast(copied ? "Copied to clipboard." : "Copy failed. Select the draft and press Ctrl+C or ⌘C.");
+    } finally {
+        elements.copyButtons.forEach(button => { button.disabled = false; });
     }
 }
 
@@ -619,6 +617,11 @@ function bindEditorEvents() {
 function bindEvents() {
     bindToolbarEvents();
     bindEditorEvents();
+    elements.manualCopy.addEventListener("click", () => {
+        elements.editor.focus({ preventScroll: true });
+        elements.editor.select();
+        syncSelectionState();
+    });
     elements.undo.addEventListener("click", () => travelHistory("undo"));
     elements.redo.addEventListener("click", () => travelHistory("redo"));
 

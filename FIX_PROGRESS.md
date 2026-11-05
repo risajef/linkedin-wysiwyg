@@ -9,7 +9,7 @@ Review baseline: `8553ad5`, 2026-11-05. Finding numbers refer to the parent's `L
 | 3. Undo / redo | Complete | Added bounded document transactions with text and selection, grouped typing, redo invalidation, keyboard shortcuts and visible Undo/Redo controls. Formatting, list edits, normalization and clear use the same history. Chromium verifies formatting recovery, redo, clear recovery, grouping and branching. |
 | 4. Line boundaries | Complete | Extracted line-boundary command with exclusive selection ends and valid empty-line ranges. Pure edge cases and Chromium list/indent checks pass, including undo. |
 | 5. List parsing | Complete | Pure list parsing separates indentation and body, removes one narrow marker, preserves prose, and keeps indentation before replacement markers. Empty Clear markers no longer inserts sample content. Pure and Chromium checks pass. Ambiguous multi-letter alphabetic prefixes are deliberately preserved (including generated labels after z). |
-| 6. Clipboard outcomes | Pending | |
+| 6. Clipboard outcomes | Complete | Browser adapter checks legacy copy results, handles exceptions, cleans its temporary buffer and restores focus/selection. Failure offers manual selection; repeated pending clicks are disabled. Chromium covers real API success, rejected API with false/throwing fallback, fallback success and manual selection. |
 | 7. Selection / typing state | Pending | |
 | 8. Composition / input methods | Pending | |
 | 9. Accessible controls | Pending | |
