@@ -52,5 +52,3 @@ Before expanding browser support, manually check physical CJK/accent composition
 | `history.js` | Bounded document transactions, typing grouping, undo and redo. |
 | `clipboard.js` | Browser copy API and checked fallback with cleanup. |
 | `app.js` | Validated DOM wiring, selection/typing state, rendering and input lifecycle. |
-
-Progress against the architecture review is recorded in [FIX_PROGRESS.md](FIX_PROGRESS.md). Each numbered finding has its own commit. No parent-site deployment or committed submodule-pointer update is part of these fixes.
